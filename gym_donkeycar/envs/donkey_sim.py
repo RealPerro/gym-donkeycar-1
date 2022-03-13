@@ -44,9 +44,11 @@ class DonkeyUnitySimContoller:
         self.handler.set_episode_over_fn(ep_over_fn)
 
     def wait_until_loaded(self):
+        time.sleep(0.1)
         while not self.handler.loaded:
             logger.warning("waiting for sim to start..")
-            time.sleep(3.0)
+            time.sleep(1.0)
+        print("sim started")
 
     def reset(self):
         self.handler.reset()
@@ -126,6 +128,9 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.vel_y = 0.0
         self.vel_z = 0.0
         self.lidar = []
+
+        self.n_steps = 0
+        self.n_consecutive_no_speed = 0
 
         # car in Unity lefthand coordinate system: roll is Z, pitch is X and yaw is Y
         self.roll = 0.0
@@ -370,6 +375,8 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.current_lap_time = 0.0
         self.last_lap_time = 0.0
 
+        self.n_steps = 0
+        self.n_consecutive_no_speed = 0
         # car
         self.roll = 0.0
         self.pitch = 0.0
@@ -379,6 +386,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         return self.camera_img_size
 
     def take_action(self, action):
+        self.n_steps += 1
         self.send_control(action[0], action[1])
 
     def observe(self):
@@ -424,8 +432,17 @@ class DonkeyUnitySimHandler(IMesgHandler):
         logger.debug("custom reward fn set.")
 
     def calc_reward(self, done):
+        # if done:
+        #     return -1.0
+
+        # Normalization factor
+        max_speed = 10
+
         if done:
-            return -1.0
+            return -15 - 2 * self.speed / max_speed
+
+        if self.hit != "none":
+            return -15 - 2 * self.speed / max_speed
 
         if self.cte > self.max_cte:
             return -1.0
@@ -543,6 +560,13 @@ class DonkeyUnitySimHandler(IMesgHandler):
         elif self.dq:
             logger.debug("disqualified")
             self.over = True
+
+        if np.abs(self.speed) < 1 and self.n_steps > 100:
+            self.n_consecutive_no_speed += 1
+            if self.n_consecutive_no_speed > 60:
+                self.over = True
+        else:
+            self.n_consecutive_no_speed = 0
 
     def on_scene_selection_ready(self, data):
         logger.debug("SceneSelectionReady ")

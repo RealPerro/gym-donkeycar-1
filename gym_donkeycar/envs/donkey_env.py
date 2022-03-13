@@ -42,8 +42,8 @@ class DonkeyEnv(gym.Env):
     metadata = {"render.modes": ["human", "rgb_array"]}
 
     ACTION_NAMES = ["steer", "throttle"]
-    STEER_LIMIT_LEFT = -1.0
-    STEER_LIMIT_RIGHT = 1.0
+    STEER_LIMIT_LEFT = -0.5
+    STEER_LIMIT_RIGHT = 0.5
     THROTTLE_MIN = 0.0
     THROTTLE_MAX = 1.0
     VAL_PER_PIXEL = 255
@@ -122,12 +122,21 @@ class DonkeyEnv(gym.Env):
         for i in range(self.frame_skip):
             self.viewer.take_action(action)
             observation, reward, done, info = self.viewer.observe()
+
+        if done:
+            self.viewer.take_action([0, 0])
+            time.sleep(0.1)
+
         return observation, reward, done, info
 
     def reset(self):
+        self.viewer.take_action([0, 0])
+        time.sleep(0.1)
         self.viewer.reset()
-        observation, reward, done, info = self.viewer.observe()
+        self.viewer.take_action([0, 0])
         time.sleep(1)
+
+        observation, reward, done, info = self.viewer.observe()
         return observation
 
     def render(self, mode="human", close=False):
