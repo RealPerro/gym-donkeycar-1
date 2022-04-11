@@ -52,8 +52,10 @@ class DonkeyEnv(gym.Env):
     THROTTLE_MAX: float = 1.0
     VAL_PER_PIXEL: int = 255
 
-    def __init__(self, level: str, conf: Optional[Dict[str, Any]] = None):
+    def __init__(self, level: str, conf: Optional[Dict[str, Any]] = None, steer=0.5):
         print("starting DonkeyGym env")
+        self.STEER_LIMIT_LEFT = -steer
+        self.STEER_LIMIT_RIGHT = steer
         self.viewer = None
         self.proc = None
 

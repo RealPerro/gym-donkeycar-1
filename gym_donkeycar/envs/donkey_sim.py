@@ -467,7 +467,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
             return -2.0
 
         # going fast close to the center of lane yeilds best reward
-        return (1.0 - (math.fabs(self.cte) / self.max_cte)) * self.speed
+        return (1.0 - (math.fabs(self.cte) / self.max_cte) ** 2) * (self.speed / max_speed)
 
     # ------ Socket interface ----------- #
 
