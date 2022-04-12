@@ -6,6 +6,7 @@ date: 2018-08-31
 import base64
 import logging
 import math
+import os
 import time
 import types
 from io import BytesIO
@@ -26,6 +27,19 @@ class DonkeyUnitySimContoller:
         logger.setLevel(conf["log_level"])
 
         self.address = (conf["host"], conf["port"])
+
+        color = {
+            "classic": (20, 22, 34),
+            "red": (243, 5, 5),
+            "blue": (26, 106, 186),
+            "orange": (226, 112, 18),
+            "white": (255, 255, 255),
+            "black": (0, 0, 0),
+        }[os.environ.get("COLOR", "orange")]
+        car_name = os.environ.get("CAR_NAME", "Toni")
+        body_style = os.environ.get("BODY_STYLE", "f1")
+
+        conf["car_config"] = dict(body_style=body_style, body_rgb=color, car_name=car_name, font_size=40)
 
         self.handler = DonkeyUnitySimHandler(conf=conf)
 
@@ -152,6 +166,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.current_lap_time = 0.0
         self.starting_line_index = -1
         self.lap_count = 0
+        self.recovering = False
 
     def on_connect(self, client: SimClient) -> None:
         logger.debug("socket connected")
@@ -358,10 +373,12 @@ class DonkeyUnitySimHandler(IMesgHandler):
     # ------- Env interface ---------- #
 
     def reset(self) -> None:
+        self.recovering = False
+        self.send_control(0.0, 0.0)
         logger.debug("reseting")
         self.send_reset_car()
+        time.sleep(0.1)
         self.timer.reset()
-        time.sleep(1)
         self.image_array = np.zeros(self.camera_img_size)
         self.image_array_b = None
         self.last_obs = self.image_array
@@ -389,6 +406,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.current_lap_time = 0.0
         self.last_lap_time = 0.0
         self.lap_count = 0
+        self.last_recovery = 0.0
 
         self.n_steps = 0
         self.n_consecutive_no_speed = 0
@@ -401,6 +419,8 @@ class DonkeyUnitySimHandler(IMesgHandler):
         return self.camera_img_size
 
     def take_action(self, action: np.ndarray) -> None:
+        if self.recovering:
+            return
         self.n_steps += 1
         self.send_control(action[0], action[1])
 
@@ -581,8 +601,27 @@ class DonkeyUnitySimHandler(IMesgHandler):
             self.n_consecutive_no_speed += 1
             if self.n_consecutive_no_speed > 60:
                 self.over = True
+            # Recover strategy: reverse
+            if os.environ.get("RACE") == "True" and time.time() - self.last_recovery > 5.0:
+                self.over = False
+                logger.info("Start Recovery")
+                self.n_consecutive_no_speed = 0
+                self.recovering = True
+                self.last_recovery = time.time()
+
         else:
             self.n_consecutive_no_speed = 0
+
+        # Recover strategy: reverse
+        if self.recovering and time.time() - self.last_recovery < 3.0:
+            self.send_control(0, -0.3)
+        elif self.recovering and time.time() - self.last_recovery > 3.0:
+            self.recovering = False
+            logger.info("End recovery")
+
+        # Disable reset
+        if os.environ.get("RACE") == "True":
+            self.over = False
 
     def on_scene_selection_ready(self, message: Dict[str, Any]) -> None:
         logger.debug("SceneSelectionReady ")
