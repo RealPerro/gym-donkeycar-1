@@ -138,9 +138,12 @@ class DonkeyEnv(gym.Env):
     def reset(self) -> np.ndarray:
         self.viewer.take_action(np.array([0, 0]))
         time.sleep(0.1)
+        self.viewer.take_action(np.array([0, 0]))
+        time.sleep(0.1)
         self.viewer.reset()
         self.viewer.take_action(np.array([0, 0]))
         time.sleep(1)
+        self.viewer.take_action(np.array([0, 0]))
 
         observation, reward, done, info = self.viewer.observe()
         return observation
