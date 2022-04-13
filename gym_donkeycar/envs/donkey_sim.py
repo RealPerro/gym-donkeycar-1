@@ -35,6 +35,8 @@ class DonkeyUnitySimContoller:
             "orange": (226, 112, 18),
             "white": (255, 255, 255),
             "black": (0, 0, 0),
+            "yellow": (201, 168, 113),
+            "custom": eval(os.environ.get("CUSTOM_COLOR", "(0,0,0)")),
         }[os.environ.get("COLOR", "orange")]
         car_name = os.environ.get("CAR_NAME", "Toni")
         body_style = os.environ.get("BODY_STYLE", "f1")
@@ -167,6 +169,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.starting_line_index = -1
         self.lap_count = 0
         self.recovering = False
+        self.last_recovery = 0.0
 
     def on_connect(self, client: SimClient) -> None:
         logger.debug("socket connected")
