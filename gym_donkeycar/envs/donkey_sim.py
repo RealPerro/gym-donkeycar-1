@@ -39,7 +39,7 @@ class DonkeyUnitySimContoller:
             "custom": eval(os.environ.get("CUSTOM_COLOR", "(0,0,0)")),
         }[os.environ.get("COLOR", "orange")]
         car_name = os.environ.get("CAR_NAME", "Toni")
-        body_style = os.environ.get("BODY_STYLE", "f1")
+        body_style = os.environ.get("BODY_STYLE", "donkey")
 
         conf["car_config"] = dict(body_style=body_style, body_rgb=color, car_name=car_name, font_size=40)
 
@@ -169,7 +169,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.starting_line_index = -1
         self.lap_count = 0
         self.recovering = False
-        self.last_recovery = 0.0
+        self.last_recovery = time.time()
 
     def on_connect(self, client: SimClient) -> None:
         logger.debug("socket connected")
@@ -409,7 +409,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.current_lap_time = 0.0
         self.last_lap_time = 0.0
         self.lap_count = 0
-        self.last_recovery = 0.0
+        self.last_recovery = time.time()
 
         self.n_steps = 0
         self.n_consecutive_no_speed = 0
@@ -633,7 +633,10 @@ class DonkeyUnitySimHandler(IMesgHandler):
     def on_car_loaded(self, message: Dict[str, Any]) -> None:
         logger.debug("car loaded")
         self.loaded = True
+        self.send_control(0, 0, 1.0)
         self.on_need_car_config({})
+        self.last_recovery = time.time()
+        self.recovering = False
 
     def on_recv_scene_names(self, message: Dict[str, Any]) -> None:
         if message:
@@ -645,14 +648,14 @@ class DonkeyUnitySimHandler(IMesgHandler):
             else:
                 raise ValueError(f"Scene name {self.SceneToLoad} not in scene list {names}")
 
-    def send_control(self, steer: float, throttle: float) -> None:
+    def send_control(self, steer: float, throttle: float, brake: float = 0.0) -> None:
         if not self.loaded:
             return
         msg = {
             "msg_type": "control",
             "steering": steer.__str__(),
             "throttle": throttle.__str__(),
-            "brake": "0.0",
+            "brake": brake.__str__(),
         }
         self.queue_message(msg)
 
