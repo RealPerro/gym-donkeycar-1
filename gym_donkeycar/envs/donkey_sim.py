@@ -425,7 +425,10 @@ class DonkeyUnitySimHandler(IMesgHandler):
         if self.recovering:
             return
         self.n_steps += 1
-        self.send_control(action[0], action[1])
+        brake = 0
+        if len(action) == 3:
+            brake = action[2]
+        self.send_control(action[0], action[1], brake)
 
     def observe(self) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
         while self.last_received == self.time_received:
