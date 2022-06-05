@@ -90,8 +90,8 @@ class DonkeyUnitySimContoller:
     def exit_scene(self) -> None:
         self.handler.send_exit_scene()
 
-    def render(self, mode: str) -> None:
-        pass
+    def render(self, mode: str = "human") -> np.ndarray:
+        return self.handler.image_array
 
     def is_game_over(self) -> bool:
         return self.handler.is_game_over()

@@ -155,10 +155,7 @@ class DonkeyEnv(gym.Env):
         observation, reward, done, info = self.viewer.observe()
         return observation
 
-    def render(self, mode: str = "human", close: bool = False) -> Optional[np.ndarray]:
-        if close:
-            self.viewer.quit()
-
+    def render(self, mode: str = "human") -> Optional[np.ndarray]:
         return self.viewer.render(mode)
 
     def is_game_over(self) -> bool:
