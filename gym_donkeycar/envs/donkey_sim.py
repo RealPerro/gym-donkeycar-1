@@ -626,7 +626,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
             logger.info("End recovery")
 
         # Disable reset
-        if os.environ.get("RACE") == "True":
+        if os.environ.get("RACE") == "True" or os.environ.get("MANUAL_DRIVE") == "True":
             self.over = False
 
     def on_scene_selection_ready(self, message: Dict[str, Any]) -> None:
