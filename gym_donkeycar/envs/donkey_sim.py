@@ -10,7 +10,7 @@ import os
 import time
 import types
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from PIL import Image
@@ -18,6 +18,7 @@ from PIL import Image
 from gym_donkeycar.core.fps import FPSTimer
 from gym_donkeycar.core.message import IMesgHandler
 from gym_donkeycar.core.sim_client import SimClient
+from gym_donkeycar.envs.private_api import PrivateAPIClient
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +42,21 @@ class DonkeyUnitySimContoller:
         car_name = os.environ.get("CAR_NAME", "Toni")
         body_style = os.environ.get("BODY_STYLE", "donkey")
 
+        private_client = None
+        # Connect using private client
+        if os.environ.get("PRIVATE_KEY"):
+            self.private_client = PrivateAPIClient(
+                (conf["host"], 9092),
+                private_key=int(os.environ.get("PRIVATE_KEY")),
+            )
+            self.private_client.send_verify()
+            time.sleep(0.2)  # wait for the response of the server
+            print(f"private client verified ? {self.private_client.is_verified}")
+            private_client = self.private_client if self.private_client.is_verified else None
+
         conf["car_config"] = dict(body_style=body_style, body_rgb=color, car_name=car_name, font_size=40)
 
-        self.handler = DonkeyUnitySimHandler(conf=conf)
+        self.handler = DonkeyUnitySimHandler(conf=conf, private_client=private_client)
 
         self.client = SimClient(self.address, self.handler)
 
@@ -101,7 +114,7 @@ class DonkeyUnitySimContoller:
 
 
 class DonkeyUnitySimHandler(IMesgHandler):
-    def __init__(self, conf: Dict[str, Any]):
+    def __init__(self, conf: Dict[str, Any], private_client: Optional[PrivateAPIClient] = None):
         self.conf = conf
         self.SceneToLoad = conf["level"]
         self.loaded = False
@@ -170,6 +183,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.lap_count = 0
         self.recovering = False
         self.last_recovery = time.time()
+        self.private_client = private_client
 
     def on_connect(self, client: SimClient) -> None:
         logger.debug("socket connected")
@@ -381,6 +395,11 @@ class DonkeyUnitySimHandler(IMesgHandler):
         logger.debug("reseting")
         self.send_reset_car()
         time.sleep(0.1)
+
+        # Change random seed
+        if self.private_client is not None:
+            self.private_client.send_seed(np.random.randint(2**25))
+
         self.timer.reset()
         self.image_array = np.zeros(self.camera_img_size)
         self.image_array_b = None
@@ -628,6 +647,10 @@ class DonkeyUnitySimHandler(IMesgHandler):
         # Disable reset
         if os.environ.get("RACE") == "True" or os.environ.get("MANUAL_DRIVE") == "True":
             self.over = False
+
+        # For recording videos
+        # if self.lap_count > 2:
+        #     self.over = True
 
     def on_scene_selection_ready(self, message: Dict[str, Any]) -> None:
         logger.debug("SceneSelectionReady ")
