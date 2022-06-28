@@ -453,6 +453,7 @@ class DonkeyUnitySimHandler(IMesgHandler):
         # but only attained on a long straight line
         max_speed = 10
 
+        #if done it penalizes speed (I would rerward it!!!!)
         if done:
             return -15.0 - self.speed / max_speed
 
