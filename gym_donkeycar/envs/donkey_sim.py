@@ -451,18 +451,18 @@ class DonkeyUnitySimHandler(IMesgHandler):
     def calc_reward(self, done: bool) -> float:
         # Normalization factor, real max speed is around 30
         # but only attained on a long straight line
-        max_speed = 10
+        max_speed = 5
 
         #if done it penalizes speed (I would rerward it!!!!)
         if done:
-            return -15.0 - self.speed / max_speed
+            return -15.0 + self.speed / max_speed
 
         if self.cte > self.max_cte:
             return -15.0
 
         # Collision
         if self.hit != "none":
-            return -15.0 - self.speed / max_speed
+            return -15.0 + self.speed / max_speed
 
         # going fast close to the center of lane yields best reward
         return (1.0 - (self.cte / self.max_cte) ** 2) * (self.speed / max_speed)
