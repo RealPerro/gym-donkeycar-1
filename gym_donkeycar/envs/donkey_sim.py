@@ -453,14 +453,14 @@ class DonkeyUnitySimHandler(IMesgHandler):
         # but only attained on a long straight line
         max_speed = 10
 
-        #chr if done it penalizes speed (I would rerward it!!!!)
+        #chr if done it rewards speed
         if done:
             return -15.0 + self.speed / max_speed
 
         if self.cte > self.max_cte:
             return -15.0
 
-        # Collision
+        # chr if Collision it rewards speed
         if self.hit != "none":
             return -15.0 + self.speed / max_speed
 
