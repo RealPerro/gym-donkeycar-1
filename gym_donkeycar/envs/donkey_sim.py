@@ -451,9 +451,9 @@ class DonkeyUnitySimHandler(IMesgHandler):
     def calc_reward(self, done: bool) -> float:
         # Normalization factor, real max speed is around 30
         # but only attained on a long straight line
-        max_speed = 5
+        max_speed = 5 #chr changed from 10 to increase speed reward.
 
-        #chr if done it penalizes speed (I would rerward it!!!!)
+        #if done it penalizes speed
         if done:
             return -15.0 - self.speed / max_speed
 
